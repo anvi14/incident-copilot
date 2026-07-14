@@ -82,14 +82,25 @@ def update_incident_status(
     incident_id: int,
     status: IncidentStatus,
 ) -> Incident | None:
+    current_incident = get_incident(incident_id)
+
+    if current_incident is None:
+        return None
+
     with get_connection() as connection:
-        cursor = connection.execute(
+        connection.execute(
             "UPDATE incidents SET status = ? WHERE id = ?",
             (status, incident_id),
         )
 
-    if cursor.rowcount == 0:
-        return None
+    create_incident_event(
+        incident_id=incident_id,
+        event_type="status_changed",
+        message=(
+            f"Status changed from "
+            f"{current_incident.status} to {status}"
+        ),
+    )
 
     return get_incident(incident_id)
 

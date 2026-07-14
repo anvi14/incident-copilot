@@ -142,3 +142,29 @@ def test_new_incident_has_alert_received_event(client):
     assert events[0]["event_type"] == "alert_received"
     assert events[0]["message"] == "Payment requests are failing"
     assert "created_at" in events[0]
+
+
+def test_status_change_adds_timeline_event(client):
+    created_response = client.post(
+        "/alerts",
+        json={
+            "service": "checkout-api",
+            "severity": "high",
+            "message": "Checkout latency is elevated",
+        },
+    )
+    incident_id = created_response.json()["id"]
+
+    client.patch(
+        f"/incidents/{incident_id}/status",
+        json={"status": "investigating"},
+    )
+
+    response = client.get(f"/incidents/{incident_id}/events")
+
+    assert response.status_code == 200
+
+    events = response.json()
+    assert len(events) == 2
+    assert events[1]["event_type"] == "status_changed"
+    assert events[1]["message"] == "Status changed from open to investigating"
