@@ -38,3 +38,9 @@ class InvestigationResult(BaseModel):
     suspected_commit_sha: str
     confidence: Literal["low", "medium", "high"]
     reason: str
+
+
+class RunbookRecommendation(BaseModel):
+    incident_id: int
+    title: str
+    steps: list[str]

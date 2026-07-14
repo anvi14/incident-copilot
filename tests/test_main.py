@@ -39,6 +39,7 @@ def test_create_incident_from_alert(client):
     assert incident["status"] == "open"
     assert incident["suspected_category"] == "payments"
 
+
 def test_list_incidents(client):
     created_response = client.post(
         "/alerts",
@@ -83,6 +84,7 @@ def test_get_unknown_incident_returns_404(client):
     assert response.status_code == 404
     assert response.json() == {"detail": "Incident not found"}
 
+
 def test_update_incident_status(client):
     created_response = client.post(
         "/alerts",
@@ -120,6 +122,7 @@ def test_reject_invalid_incident_status(client):
     )
 
     assert response.status_code == 422
+
 
 def test_new_incident_has_alert_received_event(client):
     created_response = client.post(
@@ -197,3 +200,32 @@ def test_investigate_incident_identifies_suspected_commit(client):
     assert len(events) == 2
     assert events[1]["event_type"] == "commit_suspected"
     assert "7f3a9c1" in events[1]["message"]
+
+
+def test_get_relevant_runbook_for_incident(client):
+    created_response = client.post(
+        "/alerts",
+        json={
+            "service": "payments-api",
+            "severity": "critical",
+            "message": "Payment requests are failing",
+        },
+    )
+    incident_id = created_response.json()["id"]
+
+    response = client.get(f"/incidents/{incident_id}/runbook")
+
+    assert response.status_code == 200
+
+    runbook = response.json()
+    assert runbook["incident_id"] == incident_id
+    assert runbook["title"] == "Payments Failure Runbook"
+    assert len(runbook["steps"]) >= 3
+    assert "rollback" in " ".join(runbook["steps"]).lower()
+
+    events_response = client.get(f"/incidents/{incident_id}/events")
+    events = events_response.json()
+
+    assert len(events) == 2
+    assert events[1]["event_type"] == "runbook_recommended"
+    assert "Payments Failure Runbook" in events[1]["message"]

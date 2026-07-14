@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 
+from app.runbooks import find_runbook
 from app.database import initialize_database
 from app.investigation import investigate_incident
 from app.models import (
@@ -10,6 +11,7 @@ from app.models import (
     IncidentEvent,
     IncidentStatusUpdate,
     InvestigationResult,
+    RunbookRecommendation,
 )
 from app.storage import (
     create_incident,
@@ -19,6 +21,7 @@ from app.storage import (
     list_incidents,
     update_incident_status,
 )
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -44,7 +47,6 @@ def get_incidents():
     return list_incidents()
 
 
-
 @app.get("/incidents/{incident_id}", response_model=Incident)
 def get_incident_by_id(incident_id: int):
     incident = get_incident(incident_id)
@@ -53,6 +55,7 @@ def get_incident_by_id(incident_id: int):
         raise HTTPException(status_code=404, detail="Incident not found")
 
     return incident
+
 
 @app.get(
     "/incidents/{incident_id}/events",
@@ -65,6 +68,7 @@ def get_incident_events(incident_id: int):
         raise HTTPException(status_code=404, detail="Incident not found")
 
     return list_incident_events(incident_id)
+
 
 @app.post(
     "/incidents/{incident_id}/investigate",
@@ -88,6 +92,28 @@ def investigate_incident_by_id(incident_id: int):
     )
 
     return result
+
+
+@app.get(
+    "/incidents/{incident_id}/runbook",
+    response_model=RunbookRecommendation,
+)
+def get_incident_runbook(incident_id: int):
+    incident = get_incident(incident_id)
+
+    if incident is None:
+        raise HTTPException(status_code=404, detail="Incident not found")
+
+    runbook = find_runbook(incident)
+
+    create_incident_event(
+        incident_id=incident_id,
+        event_type="runbook_recommended",
+        message=f"Recommended runbook: {runbook.title}",
+    )
+
+    return runbook
+
 
 @app.patch("/incidents/{incident_id}/status", response_model=Incident)
 def change_incident_status(
