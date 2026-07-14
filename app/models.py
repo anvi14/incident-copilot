@@ -31,3 +31,10 @@ class IncidentEvent(BaseModel):
 
 class IncidentStatusUpdate(BaseModel):
     status: IncidentStatus
+
+
+class InvestigationResult(BaseModel):
+    incident_id: int
+    suspected_commit_sha: str
+    confidence: Literal["low", "medium", "high"]
+    reason: str

@@ -168,3 +168,32 @@ def test_status_change_adds_timeline_event(client):
     assert len(events) == 2
     assert events[1]["event_type"] == "status_changed"
     assert events[1]["message"] == "Status changed from open to investigating"
+
+
+def test_investigate_incident_identifies_suspected_commit(client):
+    created_response = client.post(
+        "/alerts",
+        json={
+            "service": "payments-api",
+            "severity": "critical",
+            "message": "Payment requests are failing",
+        },
+    )
+    incident_id = created_response.json()["id"]
+
+    response = client.post(f"/incidents/{incident_id}/investigate")
+
+    assert response.status_code == 200
+
+    investigation = response.json()
+    assert investigation["incident_id"] == incident_id
+    assert investigation["suspected_commit_sha"] == "7f3a9c1"
+    assert investigation["confidence"] == "high"
+    assert "payment" in investigation["reason"].lower()
+
+    events_response = client.get(f"/incidents/{incident_id}/events")
+    events = events_response.json()
+
+    assert len(events) == 2
+    assert events[1]["event_type"] == "commit_suspected"
+    assert "7f3a9c1" in events[1]["message"]
