@@ -38,3 +38,47 @@ def test_create_incident_from_alert(client):
     assert incident["severity"] == "critical"
     assert incident["status"] == "open"
     assert incident["suspected_category"] == "payments"
+
+def test_list_incidents(client):
+    created_response = client.post(
+        "/alerts",
+        json={
+            "service": "checkout-api",
+            "severity": "high",
+            "message": "Checkout latency is increasing",
+        },
+    )
+    created_incident = created_response.json()
+
+    response = client.get("/incidents")
+
+    assert response.status_code == 200
+
+    incidents = response.json()
+    assert len(incidents) == 1
+    assert incidents[0]["id"] == created_incident["id"]
+    assert incidents[0]["service"] == "checkout-api"
+
+
+def test_get_incident_by_id(client):
+    created_response = client.post(
+        "/alerts",
+        json={
+            "service": "orders-api",
+            "severity": "critical",
+            "message": "Database connection failure",
+        },
+    )
+    created_incident = created_response.json()
+
+    response = client.get(f"/incidents/{created_incident['id']}")
+
+    assert response.status_code == 200
+    assert response.json() == created_incident
+
+
+def test_get_unknown_incident_returns_404(client):
+    response = client.get("/incidents/9999")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Incident not found"}
