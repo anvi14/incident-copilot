@@ -120,3 +120,25 @@ def test_reject_invalid_incident_status(client):
     )
 
     assert response.status_code == 422
+
+def test_new_incident_has_alert_received_event(client):
+    created_response = client.post(
+        "/alerts",
+        json={
+            "service": "payments-api",
+            "severity": "critical",
+            "message": "Payment requests are failing",
+        },
+    )
+    incident_id = created_response.json()["id"]
+
+    response = client.get(f"/incidents/{incident_id}/events")
+
+    assert response.status_code == 200
+
+    events = response.json()
+    assert len(events) == 1
+    assert events[0]["incident_id"] == incident_id
+    assert events[0]["event_type"] == "alert_received"
+    assert events[0]["message"] == "Payment requests are failing"
+    assert "created_at" in events[0]

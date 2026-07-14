@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel
@@ -18,6 +19,15 @@ class Incident(BaseModel):
     message: str
     status: IncidentStatus
     suspected_category: str
+
+
+class IncidentEvent(BaseModel):
+    id: int
+    incident_id: int
+    event_type: str
+    message: str
+    created_at: datetime
+
 
 class IncidentStatusUpdate(BaseModel):
     status: IncidentStatus

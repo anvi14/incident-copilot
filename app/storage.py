@@ -1,5 +1,5 @@
 from app.database import get_connection
-from app.models import AlertCreate, Incident, IncidentStatus
+from app.models import AlertCreate, Incident, IncidentEvent, IncidentStatus
 
 
 def guess_category(message: str) -> str:
@@ -41,6 +41,11 @@ def create_incident(alert: AlertCreate) -> Incident:
         )
 
         incident_id = cursor.lastrowid
+    create_incident_event(
+        incident_id=incident_id,
+        event_type="alert_received",
+        message=alert.message,
+    )
 
     return Incident(
         id=incident_id,
@@ -87,3 +92,43 @@ def update_incident_status(
         return None
 
     return get_incident(incident_id)
+
+def create_incident_event(
+    incident_id: int,
+    event_type: str,
+    message: str,
+) -> IncidentEvent:
+    with get_connection() as connection:
+        cursor = connection.execute(
+            """
+            INSERT INTO incident_events (
+                incident_id,
+                event_type,
+                message
+            )
+            VALUES (?, ?, ?)
+            """,
+            (incident_id, event_type, message),
+        )
+
+        row = connection.execute(
+            "SELECT * FROM incident_events WHERE id = ?",
+            (cursor.lastrowid,),
+        ).fetchone()
+
+    return IncidentEvent(**dict(row))
+
+
+def list_incident_events(incident_id: int) -> list[IncidentEvent]:
+    with get_connection() as connection:
+        rows = connection.execute(
+            """
+            SELECT *
+            FROM incident_events
+            WHERE incident_id = ?
+            ORDER BY created_at, id
+            """,
+            (incident_id,),
+        ).fetchall()
+
+    return [IncidentEvent(**dict(row)) for row in rows]

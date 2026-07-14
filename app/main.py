@@ -1,11 +1,16 @@
 from fastapi import FastAPI, HTTPException
 from contextlib import asynccontextmanager
 from app.database import initialize_database
-
-from app.models import AlertCreate, Incident, IncidentStatusUpdate
+from app.models import (
+    AlertCreate,
+    Incident,
+    IncidentEvent,
+    IncidentStatusUpdate,
+)
 from app.storage import (
     create_incident,
     get_incident,
+    list_incident_events,
     list_incidents,
     update_incident_status,
 )
@@ -33,6 +38,8 @@ def receive_alert(alert: AlertCreate):
 def get_incidents():
     return list_incidents()
 
+
+
 @app.get("/incidents/{incident_id}", response_model=Incident)
 def get_incident_by_id(incident_id: int):
     incident = get_incident(incident_id)
@@ -41,6 +48,20 @@ def get_incident_by_id(incident_id: int):
         raise HTTPException(status_code=404, detail="Incident not found")
 
     return incident
+
+@app.get(
+    "/incidents/{incident_id}/events",
+    response_model=list[IncidentEvent],
+)
+
+
+def get_incident_events(incident_id: int):
+    incident = get_incident(incident_id)
+
+    if incident is None:
+        raise HTTPException(status_code=404, detail="Incident not found")
+
+    return list_incident_events(incident_id)
 
 @app.patch("/incidents/{incident_id}/status", response_model=Incident)
 def change_incident_status(
