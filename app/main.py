@@ -1,9 +1,17 @@
 from fastapi import FastAPI, HTTPException
+from contextlib import asynccontextmanager
+from app.database import initialize_database
 
 from app.models import AlertCreate, Incident
 from app.storage import create_incident, get_incident, list_incidents
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    initialize_database()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/health")

@@ -1,6 +1,5 @@
+from app.database import get_connection
 from app.models import AlertCreate, Incident
-
-incidents: list[Incident] = []
 
 
 def guess_category(message: str) -> str:
@@ -17,24 +16,59 @@ def guess_category(message: str) -> str:
 
 
 def create_incident(alert: AlertCreate) -> Incident:
-    incident = Incident(
-        id=len(incidents) + 1,
+    status = "open"
+    suspected_category = guess_category(alert.message)
+
+    with get_connection() as connection:
+        cursor = connection.execute(
+            """
+            INSERT INTO incidents (
+                service,
+                severity,
+                message,
+                status,
+                suspected_category
+            )
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                alert.service,
+                alert.severity,
+                alert.message,
+                status,
+                suspected_category,
+            ),
+        )
+
+        incident_id = cursor.lastrowid
+
+    return Incident(
+        id=incident_id,
         service=alert.service,
         severity=alert.severity,
         message=alert.message,
-        status="open",
-        suspected_category=guess_category(alert.message),
+        status=status,
+        suspected_category=suspected_category,
     )
-
-    incidents.append(incident)
-    return incident
 
 
 def list_incidents() -> list[Incident]:
-    return incidents
+    with get_connection() as connection:
+        rows = connection.execute(
+            "SELECT * FROM incidents ORDER BY id"
+        ).fetchall()
+
+    return [Incident(**dict(row)) for row in rows]
+
 
 def get_incident(incident_id: int) -> Incident | None:
-    for incident in incidents:
-        if incident.id == incident_id:
-            return incident
-    return None
+    with get_connection() as connection:
+        row = connection.execute(
+            "SELECT * FROM incidents WHERE id = ?",
+            (incident_id,),
+        ).fetchone()
+
+    if row is None:
+        return None
+
+    return Incident(**dict(row))
