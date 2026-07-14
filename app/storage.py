@@ -1,5 +1,5 @@
 from app.database import get_connection
-from app.models import AlertCreate, Incident
+from app.models import AlertCreate, Incident, IncidentStatus
 
 
 def guess_category(message: str) -> str:
@@ -72,3 +72,18 @@ def get_incident(incident_id: int) -> Incident | None:
         return None
 
     return Incident(**dict(row))
+
+def update_incident_status(
+    incident_id: int,
+    status: IncidentStatus,
+) -> Incident | None:
+    with get_connection() as connection:
+        cursor = connection.execute(
+            "UPDATE incidents SET status = ? WHERE id = ?",
+            (status, incident_id),
+        )
+
+    if cursor.rowcount == 0:
+        return None
+
+    return get_incident(incident_id)

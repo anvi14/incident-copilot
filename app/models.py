@@ -1,4 +1,8 @@
+from typing import Literal
+
 from pydantic import BaseModel
+
+IncidentStatus = Literal["open", "investigating", "mitigated", "resolved"]
 
 
 class AlertCreate(BaseModel):
@@ -12,5 +16,8 @@ class Incident(BaseModel):
     service: str
     severity: str
     message: str
-    status: str
+    status: IncidentStatus
     suspected_category: str
+
+class IncidentStatusUpdate(BaseModel):
+    status: IncidentStatus

@@ -82,3 +82,41 @@ def test_get_unknown_incident_returns_404(client):
 
     assert response.status_code == 404
     assert response.json() == {"detail": "Incident not found"}
+
+def test_update_incident_status(client):
+    created_response = client.post(
+        "/alerts",
+        json={
+            "service": "payments-api",
+            "severity": "critical",
+            "message": "Payment requests are failing",
+        },
+    )
+    incident_id = created_response.json()["id"]
+
+    response = client.patch(
+        f"/incidents/{incident_id}/status",
+        json={"status": "investigating"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "investigating"
+
+
+def test_update_unknown_incident_returns_404(client):
+    response = client.patch(
+        "/incidents/9999/status",
+        json={"status": "resolved"},
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Incident not found"}
+
+
+def test_reject_invalid_incident_status(client):
+    response = client.patch(
+        "/incidents/9999/status",
+        json={"status": "done"},
+    )
+
+    assert response.status_code == 422
