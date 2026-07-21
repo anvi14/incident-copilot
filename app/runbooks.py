@@ -48,4 +48,14 @@ def find_runbook(incident: Incident) -> RunbookRecommendation:
         incident_id=incident.id,
         title=runbook["title"],
         steps=runbook["steps"],
+        selection_method="fallback",
+        confidence=(
+            "low"
+            if incident.suspected_category == "unknown"
+            else "high"
+        ),
+        reason=(
+            "Selected using the incident's deterministic "
+            f"{incident.suspected_category} category."
+        ),
     )

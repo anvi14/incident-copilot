@@ -16,6 +16,11 @@ The completed system will ingest alerts, identify likely problematic commits, re
   - `mitigated`
   - `resolved`
 - Validate API behavior with isolated automated tests
+- Record alert ingestion, status changes, investigation findings, and runbook recommendations in an incident timeline
+- Identify a suspected commit using deterministic simulated investigation data
+- Recommend approved runbooks with confidence and reasoning
+- Optionally use OpenAI structured outputs to select an approved runbook
+- Fall back to deterministic category matching when AI is disabled or unavailable
 
 ## Planned Incident Workflow
 
@@ -44,6 +49,7 @@ Postmortem generated
 - Pydantic
 - SQLite
 - pytest
+- OpenAI Python SDK for optional structured runbook selection
 
 ## API Endpoints
 
@@ -89,12 +95,24 @@ Open the interactive API documentation:
 http://127.0.0.1:8000/docs
 ```
 
+## Optional AI Runbook Selection
+
+AI runbook selection is disabled by default. Without configuration, the application uses deterministic category-based matching.
+
+To enable the optional OpenAI selector:
+
+```bash
+export RUNBOOK_AI_ENABLED=true
+export OPENAI_API_KEY="your-api-key"
+
 ## Run Tests
 
 ```bash
 python -m pytest -v
 ```
-
+```markdown
 ## Project Status
 
-This project is under active development. The persistent incident-management foundation is complete. Automated investigation, runbook retrieval, impact estimation, incident communications, postmortem generation, and the web interface are currently planned.
+Incident Copilot currently supports persistent incident management, timeline auditing, simulated commit investigation, approved runbook recommendations, and optional AI-assisted runbook selection with deterministic fallback.
+
+Local Markdown retrieval, customer-impact estimation, incident communications, postmortem generation, and the web interface are planned next.

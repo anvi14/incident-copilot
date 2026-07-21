@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 
-from app.runbooks import find_runbook
+from app.ai_runbooks import recommend_runbook_for_incident
 from app.database import initialize_database
 from app.investigation import investigate_incident
 from app.models import (
@@ -104,7 +104,7 @@ def get_incident_runbook(incident_id: int):
     if incident is None:
         raise HTTPException(status_code=404, detail="Incident not found")
 
-    runbook = find_runbook(incident)
+    runbook = recommend_runbook_for_incident(incident)
 
     create_incident_event(
         incident_id=incident_id,
