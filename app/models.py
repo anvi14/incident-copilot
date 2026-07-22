@@ -44,6 +44,7 @@ class RunbookRecommendation(BaseModel):
     incident_id: int
     title: str
     steps: list[str]
+    content: str | None = None
     selection_method: Literal["ai", "fallback"]
     confidence: Literal["low", "medium", "high"]
     reason: str

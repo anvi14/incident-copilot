@@ -220,8 +220,8 @@ def test_get_relevant_runbook_for_incident(client):
     runbook = response.json()
     assert runbook["incident_id"] == incident_id
     assert runbook["title"] == "Payments Failure Runbook"
-    assert len(runbook["steps"]) >= 3
-    assert "rollback" in " ".join(runbook["steps"]).lower()
+    assert runbook["content"].startswith("# Payments Failure Runbook")
+    assert "roll back" in runbook["content"].lower()
 
     events_response = client.get(f"/incidents/{incident_id}/events")
     events = events_response.json()
@@ -229,3 +229,50 @@ def test_get_relevant_runbook_for_incident(client):
     assert len(events) == 2
     assert events[1]["event_type"] == "runbook_recommended"
     assert "Payments Failure Runbook" in events[1]["message"]
+
+
+def test_runbook_api_returns_original_approved_markdown(
+    client,
+    tmp_path,
+    monkeypatch,
+):
+    approved_content = (
+        "# Payments Failure Runbook\n\n"
+        "1. Confirm payment provider health and error rates.\n"
+        "2. Roll back the suspected change if safe.\n"
+    )
+    runbook_file = tmp_path / "payments-failure.md"
+    runbook_file.write_text(
+        """---
+id: payments-failure
+title: Payments Failure Runbook
+services:
+  - payments-api
+categories:
+  - payments
+severities:
+  - critical
+---
+"""
+        + approved_content,
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        "app.ai_runbooks.RUNBOOKS_DIRECTORY",
+        tmp_path,
+    )
+
+    created_response = client.post(
+        "/alerts",
+        json={
+            "service": "payments-api",
+            "severity": "critical",
+            "message": "Payment requests are failing",
+        },
+    )
+    incident_id = created_response.json()["id"]
+
+    response = client.get(f"/incidents/{incident_id}/runbook")
+
+    assert response.status_code == 200
+    assert response.json()["content"] == approved_content
